@@ -103,7 +103,10 @@ const LiveStreamWebRTCPage = ({
     }, [whepUrl]);
 
     return (
-        <div className={classNames}>
+        <div
+            style={{ transform: 'rotate(180deg)' }}
+            className={classNames}
+        >
             {/* <h1>Live Stream (WebRTC - Low Latency)</h1> */}
             
             {isLoading && (
