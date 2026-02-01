@@ -90,7 +90,8 @@ function App() {
         <div ref={screenRef}  className='absolute top-0 left-0 w-full h-full max-w-[calc(100vh*(16/9))] max-h-[calc(100vw*(9/16))]'>
           <LiveStreamWebRTCPage
             liveInputId={flopLiveInputId}
-            className='w-full h-full object-contain'
+            className='w-full h-full object-contain rotate-180'
+            
           />
         </div>
       </div>
