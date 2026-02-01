@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import axios from 'axios';
 import { io } from 'socket.io-client';
 import html2canvas from 'html2canvas';
-import Ellipse from '@/assets/ellipse.svg';
 import RealBoard from '@/assets/real-board.jpeg';
+import LiveStreamWebRTCPage from "./components/LiveStreamWebRTCPage";
 
 
   
@@ -13,33 +12,27 @@ function App() {
   const screenRef = useRef(null);
 
   const backendUrl = import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:5050";
+  const flopLiveInputId = import.meta.env.VITE_FLOP_LIVE_INPUT_ID || '';
  
   const takeAndUploadScreenshot = async (gameId, handLevel) => {
     if (screenRef.current) {
       try {
-        // 1. Ստանում ենք էլեմենտի ընթացիկ լայնությունը
         const elementWidth = screenRef.current.offsetWidth;
-        // 2. Հաշվարկում ենք 16:9 հարաբերակցությանը համապատասխան բարձրությունը
         const targetHeight = (elementWidth * 9) / 16;
 
         const canvas = await html2canvas(screenRef.current, {
           useCORS: true,
           logging: false,
-          // 3. Սահմանափակում ենք նկարվող տարածքը
           width: elementWidth,
           height: targetHeight,
-          // Սա ապահովում է, որ նկարը սկսվի x=0, y=0 կետից
           x: 0,
           y: 0,
           scrollX: 0,
           scrollY: 0
         });
   
-        // Կարևոր է՝ օգտագործել image/jpeg, քանի որ այն սեղմվում է (ի տարբերություն PNG-ի)
         const imageData = canvas.toDataURL("image/png", 0.6); 
-        console.log("===========", imageData);
         
-        // Ուղարկում ենք սոկետով
         socketRef.current.emit('screenshot-upload', {
           image: imageData,
           gameId: gameId,
@@ -51,54 +44,6 @@ function App() {
       }
     }
   };
-
-  const takeAndUploadScreenshot2 = async (gameId, handLevel) => {
-    if (screenRef.current) {
-      try {
-        // 1. Ստանում ենք էլեմենտի ընթացիկ լայնությունը
-        const elementWidth = screenRef.current.offsetWidth;
-        
-        // 2. Հաշվարկում ենք 16:9 հարաբերակցությանը համապատասխան բարձրությունը
-        const targetHeight = (elementWidth * 9) / 16;
-  
-        const canvas = await html2canvas(screenRef.current, {
-          useCORS: true,
-          logging: false,
-          // 3. Սահմանափակում ենք նկարվող տարածքը
-          width: elementWidth,
-          height: targetHeight,
-          // Սա ապահովում է, որ նկարը սկսվի x=0, y=0 կետից
-          x: 0,
-          y: 0,
-          scrollX: 0,
-          scrollY: 0
-        });
-  
-        const imageData = canvas.toDataURL("image/png");
-        console.log('imageData',  imageData);
-        
-        // socketRef.current.emit('screenshot-upload', {
-        //   image: imageData,
-        //   gameId: gameId,
-        //   handLevel: handLevel
-        // });
-        try {
-          await axios.post(`${backendUrl}/game/upload-screenshot`, {
-            image: imageData,
-            gameId: gameId,
-            handLevel: handLevel
-          });
-        } catch (error) {
-          console.error('Screenshot upload failed:', error);
-        }
-
-
-      } catch (error) {
-        console.error('Screenshot capture failed:', error);
-      }
-    }
-  };
-
 
   useEffect(() => {
     setLoading(true);
@@ -139,13 +84,16 @@ function App() {
       </div>
     )
   }
-
   return (
-    <div ref={screenRef} className='w-[100vw] h-full max-h-screen bg-[#D0D1D3] text-black'>
-      <img
-        src={RealBoard}
-        className='w-full h-full max-w-screen max-h-screen aspect-16/9 object-center rotate-180'
-      />
+    <div className='w-screen h-screen bg-[#D0D1D3] text-black flex' >
+      <div className='relative w-full h-full max-w-[100vw] max-h-[100vh]'>
+        <div ref={screenRef}  className='absolute top-0 left-0 w-full h-full max-w-[calc(100vh*(16/9))] max-h-[calc(100vw*(9/16))]'>
+          <LiveStreamWebRTCPage
+            liveInputId={flopLiveInputId}
+            className='w-full h-full object-contain'
+          />
+        </div>
+      </div>
     </div>
   )
 
