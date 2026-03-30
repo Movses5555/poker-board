@@ -7,6 +7,7 @@ import LiveStreamWebRTCPage from "./components/LiveStreamWebRTCPage";
 
   
 function App() {
+  const [gameId, setGameId] = useState(null);
   const [loading, setLoading] = useState(true);
   const socketRef = useRef(null);
   const screenRef = useRef(null);
@@ -46,36 +47,63 @@ function App() {
   };
 
   useEffect(() => {
-    setLoading(true);
-    const socket = io(backendUrl, {
-      withCredentials: true,
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      timeout: 20000
-    });
-    socketRef.current = socket;
+    let currentGameId = null;
 
-    socket.on('connect', () => {
-      console.log('Connected to server');
-      socket.emit('ping-server', { message: 'Hello from client' });
-      setLoading(false);
-    });
+    const params = new URLSearchParams(window.location.search);
+    const gameIdFromUrl = params.get("game_id");
+    if (gameIdFromUrl) {
+      currentGameId = gameIdFromUrl;
+      localStorage.setItem("game_id", gameIdFromUrl);
+      console.log("Saved player_id to localStorage:", gameIdFromUrl);
+      params.delete("game_id");
+      const newUrl =
+        window.location.pathname +
+        (params.toString() ? "?" + params.toString() : "") +
+        window.location.hash;
+      window.history.replaceState(null, "", newUrl);
+    } else {
+      const gameIdFromStorage = localStorage.getItem("game_id");
+      if (gameIdFromStorage) {
+        currentGameId = gameIdFromStorage;
+      }
+    }
 
-    socket.on('pong-client', (data) => {
-      console.log('Received from server:', data);
-    });
-
-    socket.on('make-screenshot', (data) => {
-      console.log('Server requested screenshot for game:', data.gameId);
-      takeAndUploadScreenshot(data.gameId, data.handLevel);
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
+    if(currentGameId) {
+      setGameId(currentGameId);
+      setLoading(true);
+      const socket = io(backendUrl, {
+        withCredentials: true,
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        timeout: 20000
+      });
+      socketRef.current = socket;
+  
+      socket.on('connect', () => {
+        console.log('Connected to server');
+        socket.emit('table:register', {
+          gameId: currentGameId
+        });
+        socket.emit('ping-server', { message: 'Hello from client' });
+        setLoading(false);
+      });
+  
+      socket.on('pong-client', (data) => {
+        console.log('Received from server:', data);
+      });
+  
+      socket.on('make-screenshot', (data) => {
+        console.log('Server requested screenshot for game:', data.gameId);
+        takeAndUploadScreenshot(data.gameId, data.handLevel);
+      });
+  
+      return () => {
+        socket.disconnect();
+      };
+    }
+  }, [backendUrl]);
 
   if (!!loading) {
     return (
