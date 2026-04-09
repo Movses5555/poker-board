@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import html2canvas from 'html2canvas';
-import RealBoard from '@/assets/real-board.jpeg';
+// import RealBoard from '@/assets/real-board.jpeg';
+import RealBoard from '@/assets/real_board.png';
 import LiveStreamWebRTCPage from "./components/LiveStreamWebRTCPage";
 
 
@@ -112,6 +113,14 @@ function App() {
       </div>
     )
   }
+  // return (
+  //   <div ref={screenRef} className='w-[100vw] h-full max-h-screen bg-[#D0D1D3] text-black'>
+  //     <img
+  //       src={RealBoard}
+  //       className='w-full h-full max-w-screen max-h-screen aspect-16/9 object-center' // rotate-180
+  //     />
+  //   </div>
+  // );
   return (
     <div className='w-screen h-screen bg-[#D0D1D3] text-black flex' >
       <div className='relative w-full h-full max-w-[100vw] max-h-[100vh]'>
@@ -126,14 +135,7 @@ function App() {
     </div>
   )
 
-  return (
-    <div ref={screenRef} className='w-[100vw] h-full max-h-screen bg-[#D0D1D3] text-black'>
-      <img
-        src={RealBoard}
-        className='w-full h-full max-w-screen max-h-screen aspect-16/9 object-center rotate-180' // rotate-180
-      />
-    </div>
-  );
+
 }
 
 
