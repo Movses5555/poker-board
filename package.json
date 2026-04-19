@@ -1,9 +1,9 @@
 {
-  "name": "poker-admin",
+  "name": "poker-board",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://admin.pokerevaluation.com",
+  "homepage": "https://board.pokerevaluation.com",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
