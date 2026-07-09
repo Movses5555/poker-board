@@ -3,8 +3,9 @@ import { io } from 'socket.io-client';
 import html2canvas from 'html2canvas';
 // import RealBoard from '@/assets/real-board.jpeg';
 // import RealBoard from '@/assets/real_board.png';
-// import RealBoard from '@/assets/board-hand-3.png';
+import RealBoard from '@/assets/board-hand-1.png';
 import LiveStreamWebRTCPage from "./components/LiveStreamWebRTCPage";
+import NanoPlayerEmbed from './components/NanoPlayerEmbed';
 
 
   
@@ -17,7 +18,8 @@ function App() {
 
   const backendUrl = import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:5050";
   const flopLiveInputId = import.meta.env.VITE_FLOP_LIVE_INPUT_ID || '';
- 
+  const nanoPlayerDeskGroupIdFLOP = import.meta.env.VITE_NANOPLAYER_GROUP_ID_FLOP || 'a40b45f5-c759-49d1-8b2d-369d81420140';
+
   const takeAndUploadScreenshot = async (gameId, handLevel) => {
     if (screenRef.current && socketRef.current?.connected) {
       try {
@@ -99,17 +101,35 @@ function App() {
       socket.on('disconnect', () => clearInterval(pingInterval));
     });
 
-    socket.on('table:synced', ({ success, gameId: syncedGameId, message }) => {
+    socket.on('table:synced', ({ success, gameId: syncedGameId, message, inLobby }) => {
       if (success && syncedGameId) {
         setGameId(syncedGameId);
         localStorage.setItem('game_id', syncedGameId);
-        setConnectionError(null);
-        console.log('Table synced to active game:', syncedGameId);
+        setConnectionError(
+          inLobby ? 'Waiting for admin to start the hand…' : null,
+        );
+        console.log('Table synced to active game:', syncedGameId, { inLobby });
       } else {
         setConnectionError(message || 'No active game on server');
         console.warn('Table sync failed:', message);
       }
       setLoading(false);
+    });
+
+    socket.on('broadcast:game-data', ({ hand }) => {
+      if (hand?.game_id) {
+        setGameId(hand.game_id);
+        localStorage.setItem('game_id', hand.game_id);
+        setConnectionError(null);
+      }
+    });
+
+    socket.on('game-data', ({ hand }) => {
+      if (hand?.game_id) {
+        setGameId(hand.game_id);
+        localStorage.setItem('game_id', hand.game_id);
+        setConnectionError(null);
+      }
     });
 
     socket.on('table:registered', (data) => {
@@ -125,6 +145,13 @@ function App() {
       takeAndUploadScreenshot(data.gameId, data.handLevel);
     });
 
+    socket.on('broadcast:refresh-clients', (data) => {
+      if (data?.gameId) {
+        localStorage.setItem('game_id', data.gameId);
+      }
+      window.location.reload();
+    });
+
     socket.on('connect_error', (err) => {
       setConnectionError(err.message);
       setLoading(false);
@@ -135,6 +162,17 @@ function App() {
     };
   }, [backendUrl]);
 
+  useEffect(() => {
+    if (gameId && !connectionError) {
+      return;
+    }
+    const retrySync = () => {
+      socketRef.current?.emit('table:sync-active-game');
+    };
+    const interval = setInterval(retrySync, 3000);
+    return () => clearInterval(interval);
+  }, [gameId, connectionError]);
+
   if (loading) {
     return (
       <div className='w-full h-full min-h-96 flex items-center justify-center text-black'>
@@ -143,13 +181,15 @@ function App() {
     )
   }
 
-  if (connectionError) {
+  if (connectionError && !gameId) {
     return (
       <div className='w-full h-full min-h-96 flex items-center justify-center text-black p-6'>
         <div className='text-center'>
           <p className='font-semibold'>Board connection issue</p>
           <p className='text-sm mt-2'>{connectionError}</p>
-          <p className='text-sm mt-2'>Start a game in admin, then refresh this page.</p>
+          <p className='text-sm mt-2'>
+            Create a lobby in admin and start the game. This page will reconnect automatically.
+          </p>
         </div>
       </div>
     );
@@ -160,6 +200,9 @@ function App() {
   //     {gameId && (
   //       <p className='absolute top-1 left-2 text-xs opacity-40 z-10'>game: {gameId.slice(0, 8)}…</p>
   //     )}
+  //     {connectionError && gameId ? (
+  //       <p className='absolute top-6 left-2 text-xs text-amber-800 z-10'>{connectionError}</p>
+  //     ) : null}
   //     <img
   //       src={RealBoard}
   //       className='w-full h-full max-w-screen max-h-screen aspect-16/9 object-center'
@@ -170,9 +213,15 @@ function App() {
     <div className='w-screen h-screen bg-[#D0D1D3] text-black flex' >
       <div className='relative w-full h-full max-w-[100vw] max-h-[100vh]'>
         <div ref={screenRef}  className='absolute top-0 left-0 w-full h-full max-w-[calc(100vh*(16/9))] max-h-[calc(100vw*(9/16))]'>
-          <LiveStreamWebRTCPage
+          {/* <LiveStreamWebRTCPage
             liveInputId={flopLiveInputId}
             className='w-full h-full object-contain rotate-180'
+          /> */}
+          <NanoPlayerEmbed
+            groupId={nanoPlayerDeskGroupIdFLOP}
+            title="Dealer Camera"
+            hideControls
+            // classNames={`p-[20px] xl:p-[50px] 2xl:p-[60px] ${videoClassNames}`}
           />
         </div>
       </div>
