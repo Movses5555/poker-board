@@ -3,7 +3,7 @@ import { io } from 'socket.io-client';
 import html2canvas from 'html2canvas';
 // import RealBoard from '@/assets/real-board.jpeg';
 // import RealBoard from '@/assets/real_board.png';
-import RealBoard from '@/assets/board-hand-1.png';
+// import RealBoard from '@/assets/board-hand-1.png';
 import LiveStreamWebRTCPage from "./components/LiveStreamWebRTCPage";
 import NanoPlayerEmbed from './components/NanoPlayerEmbed';
 
