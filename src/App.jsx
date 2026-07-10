@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
-import html2canvas from 'html2canvas';
 // import RealBoard from '@/assets/real-board.jpeg';
 // import RealBoard from '@/assets/real_board.png';
 // import RealBoard from '@/assets/board-hand-1.png';
-import LiveStreamWebRTCPage from "./components/LiveStreamWebRTCPage";
+// import LiveStreamWebRTCPage from "./components/LiveStreamWebRTCPage";
 import NanoPlayerEmbed from './components/NanoPlayerEmbed';
 
 
@@ -15,39 +14,36 @@ function App() {
   const [connectionError, setConnectionError] = useState(null);
   const socketRef = useRef(null);
   const screenRef = useRef(null);
+  const playerRef = useRef(null);
 
   const backendUrl = import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:5050";
   const flopLiveInputId = import.meta.env.VITE_FLOP_LIVE_INPUT_ID || '';
   const nanoPlayerDeskGroupIdFLOP = import.meta.env.VITE_NANOPLAYER_GROUP_ID_FLOP || 'a40b45f5-c759-49d1-8b2d-369d81420140';
 
   const takeAndUploadScreenshot = async (gameId, handLevel) => {
-    if (screenRef.current && socketRef.current?.connected) {
-      try {
-        const elementWidth = screenRef.current.offsetWidth;
-        const targetHeight = (elementWidth * 9) / 16;
+    if (!socketRef.current?.connected) return;
 
-        const canvas = await html2canvas(screenRef.current, {
-          useCORS: true,
-          logging: false,
-          width: elementWidth,
-          height: targetHeight,
-          x: 0,
-          y: 0,
-          scrollX: 0,
-          scrollY: 0
-        });
-  
-        const imageData = canvas.toDataURL("image/png", 0.6); 
-        
-        socketRef.current.emit('screenshot-upload', {
-          image: imageData,
-          gameId: gameId,
-          handLevel: handLevel
-        });
-  
-      } catch (error) {
-        console.error('Screenshot failed:', error);
+    try {
+      console.log('playerRef.current', playerRef.current);
+      // Capture the live <video> frame directly. html2canvas cannot read
+      // cross-origin iframe / stream pixels and produces a black image.
+      const imageData = await playerRef.current?.captureFrame?.({
+        timeoutMs: 5000,
+        intervalMs: 150,
+      });
+
+      if (!imageData) {
+        console.warn('Video frame not ready for screenshot');
+        return;
       }
+
+      socketRef.current.emit('screenshot-upload', {
+        image: imageData,
+        gameId: gameId,
+        handLevel: handLevel
+      });
+    } catch (error) {
+      console.error('Screenshot failed:', error);
     }
   };
 
@@ -218,6 +214,7 @@ function App() {
             className='w-full h-full object-contain rotate-180'
           /> */}
           <NanoPlayerEmbed
+            ref={playerRef}
             groupId={nanoPlayerDeskGroupIdFLOP}
             title="Dealer Camera"
             hideControls
