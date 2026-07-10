@@ -48,34 +48,46 @@ const videoScore = (video) => {
   );
 };
 
-const frameToDataUrl = (video) => {
-  if (!video || !video.videoWidth || !video.videoHeight) {
-    return null;
-  }
+const drawRotatedToDataUrl = (source, width, height, rotateDeg = 0) => {
+  if (!source || !width || !height) return null;
 
   const canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
 
   try {
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    if (rotateDeg === 180) {
+      ctx.translate(width, height);
+      ctx.rotate(Math.PI);
+    }
+    ctx.drawImage(source, 0, 0, width, height);
     return canvas.toDataURL('image/png', 0.6);
   } catch (error) {
-    console.error('Failed to encode video frame:', error);
+    console.error('Failed to encode frame:', error);
     return null;
   }
 };
 
-const canvasToDataUrl = (canvas) => {
-  if (!canvas || !canvas.width || !canvas.height) return null;
-  try {
-    return canvas.toDataURL('image/png', 0.6);
-  } catch (error) {
-    console.error('Failed to encode canvas frame:', error);
+const frameToDataUrl = (video, rotateDeg = 0) => {
+  if (!video || !video.videoWidth || !video.videoHeight) {
     return null;
   }
+  return drawRotatedToDataUrl(video, video.videoWidth, video.videoHeight, rotateDeg);
+};
+
+const canvasToDataUrl = (canvas, rotateDeg = 0) => {
+  if (!canvas || !canvas.width || !canvas.height) return null;
+  if (!rotateDeg) {
+    try {
+      return canvas.toDataURL('image/png', 0.6);
+    } catch (error) {
+      console.error('Failed to encode canvas frame:', error);
+      return null;
+    }
+  }
+  return drawRotatedToDataUrl(canvas, canvas.width, canvas.height, rotateDeg);
 };
 
 const describeMedia = (el) => ({
@@ -96,6 +108,7 @@ const NanoPlayerEmbed = forwardRef(({
   title = 'Live stream',
   hideControls = false,
   scaling = 'letterbox',
+  rotate = 0,
 }, ref) => {
   const reactId = useId();
   const idBase = useMemo(
@@ -163,7 +176,7 @@ const NanoPlayerEmbed = forwardRef(({
         const videos = collectVideoCandidates();
         for (const video of videos) {
           if (videoScore(video) <= 0) continue;
-          const imageData = frameToDataUrl(video);
+          const imageData = frameToDataUrl(video, rotate);
           if (imageData) {
             activeVideoRef.current = video;
             return imageData;
@@ -171,7 +184,7 @@ const NanoPlayerEmbed = forwardRef(({
         }
 
         for (const canvas of collectCanvasCandidates()) {
-          const imageData = canvasToDataUrl(canvas);
+          const imageData = canvasToDataUrl(canvas, rotate);
           if (imageData) return imageData;
         }
 
@@ -188,7 +201,7 @@ const NanoPlayerEmbed = forwardRef(({
 
       return null;
     },
-  }), [videoIdA, videoIdB]);
+  }), [videoIdA, videoIdB, rotate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -291,7 +304,7 @@ const NanoPlayerEmbed = forwardRef(({
   return (
     <div
       ref={rootRef}
-      className={`relative w-full h-full overflow-hidden bg-black ${classNames}`}
+      className={`relative w-full h-full overflow-hidden bg-black ${rotate === 180 ? 'rotate-180' : ''} ${classNames}`}
       title={title}
     >
       <div

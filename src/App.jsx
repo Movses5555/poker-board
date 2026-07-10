@@ -218,6 +218,7 @@ function App() {
             groupId={nanoPlayerDeskGroupIdFLOP}
             title="Dealer Camera"
             hideControls
+            rotate={180}
             // classNames={`p-[20px] xl:p-[50px] 2xl:p-[60px] ${videoClassNames}`}
           />
         </div>
